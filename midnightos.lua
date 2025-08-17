@@ -26,6 +26,8 @@ local appdata_path = "os/appdata"
 local modem, modem_side
 local speaker, speaker_side
 
+local is_settings_open = false
+
 -- functions
 local function setup()
     eio.ensureDirExists(appdata_path)
@@ -40,18 +42,46 @@ local function showApp(app_name)
     current_app = app_name
     app_data[app_name].frame:setVisible(true)
     slide_frame:animate()
-        :move(-main:getWidth(), 2, 0.2)
+        :move(-main:getWidth(), 2, config.settings.animation_speed)
+        :onComplete(function()
+            is_settings_open = false
+        end)
         :start()
 end
 
 local function hideApp()
     slide_frame:animate()
-        :move(1, 2, 0.2)
+        :move(1, 2, config.settings.animation_speed)
         :onComplete(function()
             if not current_app then return end
             app_data[current_app].frame:setVisible(false)
             current_app = nil
+            is_settings_open = false
         end)
+        :start()
+end
+
+local function showOsSettings()
+    slide_frame:animate()
+        :move(1, -math.floor(main:getHeight()*config.settings.settings_height) + 1, config.settings.animation_speed)
+        :start()
+end
+
+local function hideOsSettings()
+    slide_frame:animate()
+        :move(1, 2, config.settings.animation_speed)
+        :start()
+end
+
+local function showAppSettings()
+    slide_frame:animate()
+        :move(-main:getWidth(), -math.floor(main:getHeight()*config.settings.settings_height) + 1, config.settings.animation_speed)
+        :start()
+end
+
+local function hideAppSettings()
+    slide_frame:animate()
+        :move(-main:getWidth(), 2, config.settings.animation_speed)
         :start()
 end
 
@@ -260,19 +290,29 @@ status_right_label = status_frame:addLabel()
 
 slide_frame = main:addFrame()
     :setPosition(1, 2)
-    :setSize(main:getWidth()*2 + 1, main:getHeight() - 2)
-    :setBackground(colors.black)
+    :setSize(main:getWidth()*2 + 1, main:getHeight() - 2 + math.floor(main:getHeight()*config.settings.settings_height) + 1)
+    :setBackground(colors.yellow)
 
 app_list_frame = slide_frame:addFrame()
     :setPosition(1, 2)
-    :setSize(main:getWidth(), slide_frame:getHeight() - 2)
+    :setSize(main:getWidth(), main:getHeight() - 3)
     :setBackground(colors.black)
 bext.addVarticalScrolling(app_list_frame)
 
+local os_settings_frame = slide_frame:addFrame()
+    :setPosition(1, main:getHeight())
+    :setSize(main:getWidth(), math.floor(main:getHeight()*config.settings.settings_height) - 1)
+    :setBackground(colors.red)
+
 app_container_frame = slide_frame:addFrame()
     :setPosition(main:getWidth() + 2, 1)
-    :setSize(main:getWidth(), slide_frame:getHeight())
+    :setSize(main:getWidth(), main:getHeight() - 2)
     :setBackground(colors.black)
+
+local app_settings_frame = slide_frame:addFrame()
+    :setPosition(main:getWidth() + 2, main:getHeight())
+    :setSize(main:getWidth(), math.floor(main:getHeight()*config.settings.settings_height) - 1)
+    :setBackground(colors.green)
 
 -- app loader
 local apps = {}
@@ -291,7 +331,7 @@ for app_name, app in pairs(apps) do
         app.app and type(app.app) == "function"
     })
 
-    if not is_valid_app then -- invalid app
+    if not is_valid_app then
         goto skip_app_from_list
     end
 
@@ -414,6 +454,25 @@ settings_button = tray_bar:addButton()
     :setPosition(tray_bar:getWidth() - eui.getCenterPos(tray_bar:getWidth()/3, 3) - 2, 1)
     :setBackground("{self.clicked and colors.lightGray or colors.gray}")
     :setForeground(colors.white)
+    :onClickUp(function()
+        if current_app then -- on home screen
+            if is_settings_open then
+                hideAppSettings()
+                is_settings_open = false
+            else
+                showAppSettings()
+                is_settings_open = true
+            end
+        else -- on app screen
+            if is_settings_open then
+                hideOsSettings()
+                is_settings_open = false
+            else
+                showOsSettings()
+                is_settings_open = true
+            end
+        end
+    end)
 
 basalt.schedule(grabTraffic)
 basalt.schedule(processTraffic)
