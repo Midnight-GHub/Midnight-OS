@@ -344,7 +344,11 @@ back_button = tray_bar:addButton()
     :setPosition(eui.getCenterPos(tray_bar:getWidth()/3, 1), 1)
     :setBackground("{self.clicked and colors.lightGray or colors.red}")
     :setForeground(colors.white)
-    :onClickUp(function()
+    :onClickUp(function(self)
+        self:setText("")
+        sleep(0.2)
+        self:setText("<")
+
         if not current_app then return end
         if not app_data[current_app].frame.visible then return end
         triggerAppFunction(current_app, "onBack")
@@ -356,7 +360,11 @@ home_button = tray_bar:addButton()
     :setPosition(eui.getCenterPos(tray_bar:getWidth(), 3), 1)
     :setBackground("{self.clicked and colors.lightGray or colors.gray}")
     :setForeground(colors.white)
-    :onClickUp(function()
+    :onClickUp(function(self)
+        self:setText("+")
+        sleep(0.2)
+        self:setText("[+]")
+
         if not current_app then return end
         if not app_data[current_app].frame.visible then return end
         triggerAppFunction(current_app, "onHome")
@@ -367,9 +375,13 @@ settings_button = tray_bar:addButton()
     :setText("[*]")
     :setSize(3, 1)
     :setPosition(tray_bar:getWidth() - eui.getCenterPos(tray_bar:getWidth()/3, 3) - 2, 1)
-    :setBackground("{self.clicked and colors.lightGray or colors.gray}")
+    :setBackground(colors.gray)
     :setForeground(colors.white)
-    :onClickUp(function()
+    :onClickUp(function(self)
+        self:setText("*")
+        sleep(0.2)
+        self:setText("[*]")
+
         if current_app then -- on app screen
             if is_settings_open then
                 hideAppSettings()
