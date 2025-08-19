@@ -15,6 +15,7 @@ local api = require("os/lib/api")
 local main
 local slide_frame
 local app_list_frame, app_container_frame
+local os_settings_frame, app_settings_frame
 local app_data = {}
 local tray_bar, home_button, back_button, settings_button
 local status_frame, status_right_label, status_mid_label, status_left_label
@@ -38,29 +39,7 @@ local function setup()
     end
 end
 
-local function showApp(app_name)
-    current_app = app_name
-    app_data[app_name].frame:setVisible(true)
-    slide_frame:animate()
-        :move(-main:getWidth(), 2, config.settings.animation_speed)
-        :onComplete(function()
-            is_settings_open = false
-        end)
-        :start()
-end
-
-local function hideApp()
-    slide_frame:animate()
-        :move(1, 2, config.settings.animation_speed)
-        :onComplete(function()
-            if not current_app then return end
-            app_data[current_app].frame:setVisible(false)
-            current_app = nil
-            is_settings_open = false
-        end)
-        :start()
-end
-
+-- navigation functions
 local function showOsSettings()
     slide_frame:animate()
         :move(1, -math.floor(main:getHeight()*config.settings.settings_height) + 1, config.settings.animation_speed)
@@ -82,6 +61,44 @@ end
 local function hideAppSettings()
     slide_frame:animate()
         :move(-main:getWidth(), 2, config.settings.animation_speed)
+        :start()
+end
+
+local function showApp(app_name)
+    local animation_speed = config.settings.animation_speed
+    if is_settings_open then
+        hideOsSettings()
+        sleep(animation_speed + 0.1)
+        is_settings_open = false
+    end
+
+    current_app = app_name
+    app_data[app_name].frame:setVisible(true)
+
+    slide_frame:animate()
+        :move(-main:getWidth(), 2, animation_speed)
+        :onComplete(function()
+            is_settings_open = false
+        end)
+        :start()
+end
+
+local function hideApp()
+    local animation_speed = config.settings.animation_speed
+    if is_settings_open then
+        hideAppSettings()
+        sleep(animation_speed + 0.1)
+        is_settings_open = false
+    end
+    
+    slide_frame:animate()
+        :move(1, 2, animation_speed)
+        :onComplete(function()
+            if not current_app then return end
+            app_data[current_app].frame:setVisible(false)
+            current_app = nil
+            is_settings_open = false
+        end)
         :start()
 end
 
@@ -195,13 +212,6 @@ local function triggerAppFunction(app_name, func_name, ...)
     end
 end
 
-local function handleTraffic()
-    local sender_id, data, protocol = rednet.receive(const.protocol)
-    if not sender_id then return end
-
-    triggerAppFunction("all", "onTraffic", sender_id, data, api.getIRLLocalTimestamp())
-end
-
 local function grabTraffic()
     while true do
         local sender_id, data, protocol = rednet.receive(const.protocol)
@@ -261,6 +271,14 @@ local function mainLoop()
     end
 end
 
+-- deprecated functions
+local function handleTraffic() -- could cause data loss, use grabTraffic and processTraffic instead
+    local sender_id, data, protocol = rednet.receive(const.protocol)
+    if not sender_id then return end
+
+    triggerAppFunction("all", "onTraffic", sender_id, data, api.getIRLLocalTimestamp())
+end
+
 -- main
 setup()
 connectModem()
@@ -268,6 +286,7 @@ connectSpeaker()
 
 if modem then rednet.open(peripheral.getName(modem)) end
 
+-- ui setup
 main = basalt.getMainFrame()
     :setBackground(colors.black)
 
@@ -291,7 +310,7 @@ status_right_label = status_frame:addLabel()
 slide_frame = main:addFrame()
     :setPosition(1, 2)
     :setSize(main:getWidth()*2 + 1, main:getHeight() - 2 + math.floor(main:getHeight()*config.settings.settings_height) + 1)
-    :setBackground(colors.yellow)
+    :setBackground(colors.black)
 
 app_list_frame = slide_frame:addFrame()
     :setPosition(1, 2)
@@ -299,7 +318,7 @@ app_list_frame = slide_frame:addFrame()
     :setBackground(colors.black)
 bext.addVarticalScrolling(app_list_frame)
 
-local os_settings_frame = slide_frame:addFrame()
+os_settings_frame = slide_frame:addFrame()
     :setPosition(1, main:getHeight())
     :setSize(main:getWidth(), math.floor(main:getHeight()*config.settings.settings_height) - 1)
     :setBackground(colors.red)
@@ -309,10 +328,66 @@ app_container_frame = slide_frame:addFrame()
     :setSize(main:getWidth(), main:getHeight() - 2)
     :setBackground(colors.black)
 
-local app_settings_frame = slide_frame:addFrame()
+app_settings_frame = slide_frame:addFrame()
     :setPosition(main:getWidth() + 2, main:getHeight())
     :setSize(main:getWidth(), math.floor(main:getHeight()*config.settings.settings_height) - 1)
     :setBackground(colors.green)
+
+tray_bar = main:addFrame()
+    :setPosition(1, main:getHeight())
+    :setSize(main:getWidth(), 1)
+    :setBackground(colors.gray)
+
+back_button = tray_bar:addButton()
+    :setText("<")
+    :setSize(3, 1)
+    :setPosition(eui.getCenterPos(tray_bar:getWidth()/3, 1), 1)
+    :setBackground("{self.clicked and colors.lightGray or colors.red}")
+    :setForeground(colors.white)
+    :onClickUp(function()
+        if not current_app then return end
+        if not app_data[current_app].frame.visible then return end
+        triggerAppFunction(current_app, "onBack")
+    end)
+
+home_button = tray_bar:addButton()
+    :setText("[+]")
+    :setSize(3, 1)
+    :setPosition(eui.getCenterPos(tray_bar:getWidth(), 3), 1)
+    :setBackground("{self.clicked and colors.lightGray or colors.gray}")
+    :setForeground(colors.white)
+    :onClickUp(function()
+        if not current_app then return end
+        if not app_data[current_app].frame.visible then return end
+        triggerAppFunction(current_app, "onHome")
+        hideApp()
+    end)
+
+settings_button = tray_bar:addButton()
+    :setText("[*]")
+    :setSize(3, 1)
+    :setPosition(tray_bar:getWidth() - eui.getCenterPos(tray_bar:getWidth()/3, 3) - 2, 1)
+    :setBackground("{self.clicked and colors.lightGray or colors.gray}")
+    :setForeground(colors.white)
+    :onClickUp(function()
+        if current_app then -- on app screen
+            if is_settings_open then
+                hideAppSettings()
+                is_settings_open = false
+            else
+                showAppSettings()
+                is_settings_open = true
+            end
+        else -- on home screen
+            if is_settings_open then
+                hideOsSettings()
+                is_settings_open = false
+            else
+                showOsSettings()
+                is_settings_open = true
+            end
+        end
+    end)
 
 -- app loader
 local apps = {}
@@ -418,62 +493,7 @@ for app_name, app in pairs(apps) do
     ::skip_app_from_list::
 end
 
-tray_bar = main:addFrame()
-    :setPosition(1, main:getHeight())
-    :setSize(main:getWidth(), 1)
-    :setBackground(colors.gray)
-
-back_button = tray_bar:addButton()
-    :setText("<")
-    :setSize(3, 1)
-    :setPosition(eui.getCenterPos(tray_bar:getWidth()/3, 1), 1)
-    :setBackground("{self.clicked and colors.lightGray or colors.red}")
-    :setForeground(colors.white)
-    :onClickUp(function()
-        if not current_app then return end
-        if not app_data[current_app].frame.visible then return end
-        triggerAppFunction(current_app, "onBack")
-    end)
-
-home_button = tray_bar:addButton()
-    :setText("[+]")
-    :setSize(3, 1)
-    :setPosition(eui.getCenterPos(tray_bar:getWidth(), 3), 1)
-    :setBackground("{self.clicked and colors.lightGray or colors.gray}")
-    :setForeground(colors.white)
-    :onClickUp(function()
-        if not current_app then return end
-        if not app_data[current_app].frame.visible then return end
-        triggerAppFunction(current_app, "onHome")
-        hideApp()
-    end)
-
-settings_button = tray_bar:addButton()
-    :setText("[*]")
-    :setSize(3, 1)
-    :setPosition(tray_bar:getWidth() - eui.getCenterPos(tray_bar:getWidth()/3, 3) - 2, 1)
-    :setBackground("{self.clicked and colors.lightGray or colors.gray}")
-    :setForeground(colors.white)
-    :onClickUp(function()
-        if current_app then -- on home screen
-            if is_settings_open then
-                hideAppSettings()
-                is_settings_open = false
-            else
-                showAppSettings()
-                is_settings_open = true
-            end
-        else -- on app screen
-            if is_settings_open then
-                hideOsSettings()
-                is_settings_open = false
-            else
-                showOsSettings()
-                is_settings_open = true
-            end
-        end
-    end)
-
+-- execute async functions
 basalt.schedule(grabTraffic)
 basalt.schedule(processTraffic)
 basalt.schedule(mainLoop)

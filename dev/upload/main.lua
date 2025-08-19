@@ -1,5 +1,4 @@
 -- Midnight-OS Uploader
--- Uploades os files to pastebin.com and generates a config file.
 
 -- variables
 local git_path = {}
