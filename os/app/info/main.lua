@@ -7,19 +7,34 @@ local metrics = require("os/lib/metrics")
 
 local function infoApp(parent, appdata_path, callback)
     -- Config
-    local data_info = {
-        game_day = {heading = "Day", squeeze_ratio = 3, status_option_text = "day"},
-        game_date = {heading = "Date", squeeze_ratio  = 2, status_option_text = "date"},
-        game_season = {heading = "Season", squeeze_ratio  = 2, status_option_text = "season"},
-        game_time = {heading = "Time", squeeze_ratio = 3, status_option_text = "time"},
-        game_day_or_night = {heading = "D/N", squeeze_ratio = 3, status_option_text = "d/n"},
-        irl_day = {heading = "Day", squeeze_ratio = 3, status_option_text = "irl-day"},
-        irl_time = {heading = "Time", squeeze_ratio = 3, status_option_text = "irl-time"},
-        irl_date = {heading = "Date", squeeze_ratio = 3, status_option_text = "irl-date"},
-        coords = {heading = "Coords", squeeze_ratio = 3, status_option_text = "coords"},
-        player_speed = {heading = "Speed", squeeze_ratio  = 2, status_option_text = "speed"},
-        player_direction = {heading = "Dir", squeeze_ratio  = 2, status_option_text = "direction"},
-        [""] = {heading = "", squeeze_ratio = 3, status_option_text = ""},
+    local data_keys = {
+        "game_day",
+        "game_date",
+        "game_season",
+        "game_time",
+        "game_day_or_night",
+        "irl_day",
+        "irl_time",
+        "irl_date",
+        "coords",
+        "player_speed",
+        "player_direction",
+        "",
+    }
+
+    local data_values = {
+        {heading = "Day", squeeze_ratio = 3, status_option_text = "Day"},
+        {heading = "Date", squeeze_ratio  = 2, status_option_text = "Date"},
+        {heading = "Season", squeeze_ratio  = 2, status_option_text = "Season"},
+        {heading = "Time", squeeze_ratio = 3, status_option_text = "Time"},
+        {heading = "D/N", squeeze_ratio = 3, status_option_text = "D/N"},
+        {heading = "Day", squeeze_ratio = 3, status_option_text = "DayIRL"},
+        {heading = "Time", squeeze_ratio = 3, status_option_text = "TimeIRL"},
+        {heading = "Date", squeeze_ratio = 3, status_option_text = "DateIRL"},
+        {heading = "Coords", squeeze_ratio = 3, status_option_text = "Coords"},
+        {heading = "Speed", squeeze_ratio  = 2, status_option_text = "Speed"},
+        {heading = "Direction", squeeze_ratio  = 2, status_option_text = "Directn"},
+        {heading = "", squeeze_ratio = 3, status_option_text = ""},
     }
 
     -- all tables below must have same number of values
@@ -28,6 +43,11 @@ local function infoApp(parent, appdata_path, callback)
     local left_data_key = {"player_speed", "", "game_day", "game_date", "irl_date"}
     local mid_data_key = {"", "coords", "game_time", "", "irl_time"}
     local right_data_key = {"player_direction", "", "game_day_or_night", "game_season", "irl_day"}
+
+    local data_info = {}
+    for _, data in ipairs(etable.zip(data_keys, data_values)) do
+        data_info[data[1]] = data[2]
+    end
 
     -- Variables
     local app = {}
@@ -56,9 +76,7 @@ local function infoApp(parent, appdata_path, callback)
 
     local function addOptions(drop_down, list)
         for _, item in ipairs(list) do
-            if item ~= "" then
-                drop_down:addItem({text = data_info[item].status_option_text, args = {data_key = item}})
-            end
+            drop_down:addItem({text = data_info[item].status_option_text, args = {data_key = item}})
         end
     end
 
@@ -119,8 +137,6 @@ local function infoApp(parent, appdata_path, callback)
             :setPosition(x, y)
             :setSize(master:getWidth(), 6)
             :setBackground(colors.black)
-
-        local data_keys = etable.getKeys(data_info)
 
         local section_width = math.floor(master:getWidth() / 3)
         local left_option = data_frame:addDropdown()

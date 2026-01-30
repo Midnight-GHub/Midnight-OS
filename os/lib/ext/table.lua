@@ -1,4 +1,5 @@
 -- Returns keys of a key-value pair table
+-- Note: Does not respect order
 local function getKeys(tbl)
     local keys = {}
     for k, _ in pairs(tbl) do

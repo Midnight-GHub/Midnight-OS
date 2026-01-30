@@ -86,9 +86,6 @@ config.settings.hours_off_set_from_utc = offset
 api.updateConfig(config)
 
 print()
-for i = 3, 1, -1 do
-    print("rebooting in "..i)
-    sleep(1)
-end
+print("rebooting...")
 
 shell.run("reboot")
