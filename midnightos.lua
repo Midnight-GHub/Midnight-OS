@@ -31,6 +31,11 @@ local is_settings_open = false
 
 -- functions
 local function setup()
+    -- basalt.LOGGER.setEnabled(true)
+    -- basalt.LOGGER.setLogToFile(true)
+
+    -- basalt.LOGGER.debug(debugText) -- Example debug log
+
     eio.ensureDirExists(appdata_path)
 
     if config.settings.enable_gps_onstartup then
@@ -377,6 +382,7 @@ settings_button = tray_bar:addButton()
     :setPosition(tray_bar:getWidth() - eui.getCenterPos(tray_bar:getWidth()/3, 3) - 2, 1)
     :setBackground(colors.gray)
     :setForeground(colors.white)
+    :setVisible(false) -- temporarily hidden WIP settings button
     :onClickUp(function(self)
         self:setText("*")
         sleep(0.2)
